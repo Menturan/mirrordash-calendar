@@ -1,0 +1,203 @@
+<div class="calendar-container">
+    {% if show_header and translations and translations.title %}
+    <h2 class="module-header">{{ translations.get("title", "Upcoming Events") }}</h2>
+    {% endif %}
+    
+    <div class="calendar-body">
+        {% if grouped_events and grouped_events|length > 0 %}
+            <div class="calendar-groups">
+                {% for group in grouped_events %}
+                    <div class="calendar-group">
+                        <div class="calendar-day-header">
+                            <span class="calendar-day-label">{{ group.day_label }}</span>
+                        </div>
+                        <div class="calendar-events">
+                            {% for ev in group.events %}
+                                <div class="calendar-event">
+                                    <div class="calendar-event-left">
+                                        <span class="calendar-event-pip" style="background-color: {{ ev.calendar_color }};"></span>
+                                        <span class="calendar-event-time">{{ ev.time_str }}</span>
+                                    </div>
+                                    <div class="calendar-event-right">
+                                        <span class="calendar-event-icon">
+                                            <i data-lucide="{{ ev.calendar_icon }}" style="color: {{ ev.calendar_color }};"></i>
+                                        </span>
+                                        <span class="calendar-event-title" title="{{ ev.summary }}">{{ ev.summary }}</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="calendar-empty">
+                <i data-lucide="calendar-off" class="calendar-empty-icon"></i>
+                <span>{{ translations.get("no_events", "No upcoming events") }}</span>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.calendar-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 380px;
+    font-family: var(--mirror-font-family, sans-serif);
+    color: var(--color-standard-gray, #999999);
+}
+
+/* Align module header based on position */
+#top_right .calendar-container,
+#middle_right .calendar-container,
+#bottom_right .calendar-container {
+    align-items: flex-end;
+    text-align: right;
+}
+
+#top_right .calendar-day-header,
+#middle_right .calendar-day-header,
+#bottom_right .calendar-day-header {
+    justify-content: flex-end;
+}
+
+#top_left .calendar-container,
+#middle_left .calendar-container,
+#bottom_left .calendar-container {
+    align-items: flex-start;
+    text-align: left;
+}
+
+#top_left .calendar-day-header,
+#middle_left .calendar-day-header,
+#bottom_left .calendar-day-header {
+    justify-content: flex-start;
+}
+
+.calendar-body {
+    width: 100%;
+}
+
+.calendar-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 8px;
+}
+
+.calendar-group {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.calendar-day-header {
+    display: flex;
+    width: 100%;
+    border-bottom: 1px solid var(--color-dimmed-charcoal, #666666);
+    padding-bottom: 4px;
+    margin-bottom: 8px;
+}
+
+.calendar-day-label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--color-standard-gray, #999999);
+    text-transform: uppercase;
+}
+
+.calendar-events {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.calendar-event {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    animation: calFadeIn 0.5s ease-out;
+}
+
+.calendar-event-left {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.calendar-event-pip {
+    width: 4px;
+    height: 14px;
+    border-radius: var(--radius-sm, 2px);
+    margin-right: 8px;
+}
+
+.calendar-event-time {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--color-standard-gray, #999999);
+    min-width: 95px; /* Aligns "09:00 - 10:30" or "All Day" */
+    width: max-content;
+    flex-shrink: 0;
+    text-align: left;
+}
+
+.calendar-event-right {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
+    overflow: hidden;
+    margin-left: 8px;
+}
+
+.calendar-event-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 6px;
+    flex-shrink: 0;
+}
+
+.calendar-event-icon i {
+    width: 14px;
+    height: 14px;
+    stroke-width: 1.5px;
+}
+
+.calendar-event-title {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--color-high-contrast, #ffffff);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.calendar-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 0;
+    color: var(--color-dimmed-charcoal, #666666);
+    font-style: italic;
+    font-size: 14px;
+    gap: 8px;
+}
+
+.calendar-empty-icon {
+    width: 20px;
+    height: 20px;
+    stroke-width: 1.5px;
+    color: var(--color-dimmed-charcoal, #666666);
+}
+
+@keyframes calFadeIn {
+    from { opacity: 0; transform: translateY(2px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>

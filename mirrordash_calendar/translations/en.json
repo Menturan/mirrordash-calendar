@@ -1,0 +1,9 @@
+{
+  "title": "Upcoming Events",
+  "last_checked": "Last checked",
+  "today": "Today",
+  "tomorrow": "Tomorrow",
+  "all_day": "All Day",
+  "no_events": "No upcoming events",
+  "error_fetching": "Error loading calendar feeds"
+}

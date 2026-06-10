@@ -1,0 +1,24 @@
+[project]
+name = "mirrordash-calendar"
+version = "0.1.0"
+description = "Detailed calendar module showing upcoming events"
+authors = [
+    { name = "MirrorDash Developer" }
+]
+dependencies = [
+    "jinja2",
+    "icalendar",
+    "recurring-ical-events",
+    "babel",
+    "httpx"
+]
+
+[project.entry-points."mirrordash.modules"]
+mirrordash_calendar = "mirrordash_calendar.plugin:CalendarModule"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["mirrordash_calendar"]

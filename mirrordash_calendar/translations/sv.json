@@ -1,0 +1,9 @@
+{
+  "title": "Kommande Händelser",
+  "last_checked": "Senast kontrollerad",
+  "today": "Idag",
+  "tomorrow": "Imorgon",
+  "all_day": "Heldag",
+  "no_events": "Inga kommande händelser",
+  "error_fetching": "Kunde inte läsa kalendrar"
+}

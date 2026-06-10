@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Detailed Calendar Settings",
+  "type": "object",
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "title": "Enabled",
+      "description": "Enable or disable this module."
+    },
+    "position": {
+      "type": "string",
+      "default": "middle_left",
+      "enum": [
+        "top_left",
+        "top_center",
+        "top_right",
+        "middle_left",
+        "middle_center",
+        "middle_right",
+        "bottom_left",
+        "bottom_center",
+        "bottom_right"
+      ],
+      "title": "Screen Position",
+      "description": "Where to display this module on the mirror screen."
+    },
+    "interval": {
+      "type": "integer",
+      "default": 300,
+      "title": "Update Interval (Seconds)",
+      "description": "Time to wait between calendar feed updates (e.g., 300 seconds = 5 minutes)."
+    },
+    "max_events": {
+      "type": "integer",
+      "default": 10,
+      "title": "Max Events",
+      "description": "Maximum number of upcoming events to display."
+    },
+    "maximum_days": {
+      "type": "integer",
+      "default": 7,
+      "title": "Lookahead Days",
+      "description": "How many days in the future to search for upcoming events."
+    },
+    "calendars": {
+      "type": "array",
+      "title": "Calendars",
+      "description": "List of iCalendar (.ics) feed sources.",
+      "default": [],
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Calendar Name",
+            "description": "Friendly name for this calendar."
+          },
+          "url": {
+            "type": "string",
+            "title": "ICS URL",
+            "description": "HTTP URL to the public or private .ics file."
+          },
+          "color": {
+            "type": "string",
+            "title": "Indicator Color",
+            "description": "Hex color code or CSS custom property for event indicators (e.g., #ffffff, var(--color-ice-blue)).",
+            "default": "#ffffff"
+          },
+          "icon": {
+            "type": "string",
+            "title": "Lucide Icon",
+            "description": "Lucide outline icon name to show next to events (e.g., calendar, music, alert-circle).",
+            "default": "calendar"
+          }
+        },
+        "required": ["name", "url"]
+      }
+    }
+  },
+  "required": ["enabled", "position", "interval"]
+}
