@@ -7,6 +7,9 @@ Detailed calendar module showing upcoming events for MirrorDash.
 - Async parallel fetching of multiple calendars with caching.
 - Dynamic color swatches and customizable vector icons for events.
 
+## License
+[PolyForm Noncommercial License 1.0.0](LICENSE.md)
+
 ## Installation
  
 Install in editable mode for local development:

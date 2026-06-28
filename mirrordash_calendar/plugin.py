@@ -99,8 +99,13 @@ class CalendarModule:
         logger.info("Initializing CalendarModule: language=%s, time_format=%s, max_events=%d, lookahead_days=%d", 
                     self.lang, self.time_format, self.max_events, self.maximum_days)
 
-    def translate(self, key, default=None):
-        return self.translations.get(key, default or key)
+    def translate(self, key: str, default: str = None) -> str:
+        if not hasattr(self, "translations") or not self.translations:
+            return default if default is not None else key
+        val = self.translations.get(key)
+        if val is not None:
+            return val
+        return default if default is not None else key
 
     async def fetch_feed(self, client: httpx.AsyncClient, url: str) -> bytes:
         """Fetch ICS feed from URL, saving to cache if successful, or falling back to cache if down."""
@@ -114,8 +119,10 @@ class CalendarModule:
                 data = response.content
                 if cache_path:
                     try:
-                        with open(cache_path, "wb") as f:
-                            f.write(data)
+                        def save_to_file():
+                            with open(cache_path, "wb") as f:
+                                f.write(data)
+                        await asyncio.to_thread(save_to_file)
                         logger.debug(f"Saved calendar cache to {cache_path}")
                     except Exception as ce:
                         logger.warning(f"Could not save calendar cache: {ce}")
@@ -129,8 +136,10 @@ class CalendarModule:
         if cache_path and os.path.exists(cache_path):
             try:
                 logger.info(f"Using cached calendar data for {url}")
-                with open(cache_path, "rb") as f:
-                    return f.read()
+                def read_from_file():
+                    with open(cache_path, "rb") as f:
+                        return f.read()
+                return await asyncio.to_thread(read_from_file)
             except Exception as re:
                 logger.error(f"Failed to read calendar cache from {cache_path}: {re}")
                 
