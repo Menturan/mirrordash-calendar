@@ -224,30 +224,58 @@ class CalendarModule:
                 else:
                     end_local_date = end_aware.date()
                     
+            # Determine if this is a multi-day all-day event
+            is_multiday_allday = all_day and (end_local_date > start_local_date)
+            
             # Loop through dates in lookahead window and check for intersections
             for d_idx in range(self.maximum_days + 1):
                 d = today_date + timedelta(days=d_idx)
                 if start_local_date <= d <= end_local_date:
-                    # Format time strings
-                    if all_day:
-                        time_str = self.translate("all_day", "All Day")
-                    else:
-                        # Event starts at start_aware, ends at end_aware.
-                        # Check if start/end happens on this exact day d
-                        s_time = start_aware.strftime("%H:%M") if self.time_format == "24h" else start_aware.strftime("%I:%M %p").lstrip('0')
-                        e_time = end_aware.strftime("%H:%M") if self.time_format == "24h" else end_aware.strftime("%I:%M %p").lstrip('0')
-                        
-                        if start_local_date == d and end_local_date == d:
-                            time_str = f"{s_time} - {e_time}"
-                        elif start_local_date == d:
-                            # Starts today, ends tomorrow
-                            time_str = f"{s_time} →"
-                        elif end_local_date == d:
-                            # Started yesterday, ends today
-                            time_str = f"→ {e_time}"
+                    if is_multiday_allday:
+                        # For multi-day all-day events, only display once on the first active day in the lookahead window
+                        first_active_date = max(start_local_date, today_date)
+                        if d != first_active_date:
+                            continue
+                            
+                        # Format the end date elegantly
+                        end_pattern = "d MMM" if self.lang == "sv" else "MMM d"
+                        try:
+                            end_str = babel_format_date(end_local_date, format=end_pattern, locale=self.lang)
+                        except Exception:
+                            end_str = end_local_date.strftime("%b %d")
+                            
+                        if start_local_date <= today_date:
+                            # Currently ongoing
+                            now_translation = self.translate("now", "Now")
+                            time_str = f"{now_translation} - {end_str}"
                         else:
-                            # Ongoing multi-day event
+                            # Future multi-day event
+                            try:
+                                start_str = babel_format_date(start_local_date, format=end_pattern, locale=self.lang)
+                            except Exception:
+                                start_str = start_local_date.strftime("%b %d")
+                            time_str = f"{start_str} - {end_str}"
+                    else:
+                        # Format time strings
+                        if all_day:
                             time_str = self.translate("all_day", "All Day")
+                        else:
+                            # Event starts at start_aware, ends at end_aware.
+                            # Check if start/end happens on this exact day d
+                            s_time = start_aware.strftime("%H:%M") if self.time_format == "24h" else start_aware.strftime("%I:%M %p").lstrip('0')
+                            e_time = end_aware.strftime("%H:%M") if self.time_format == "24h" else end_aware.strftime("%I:%M %p").lstrip('0')
+                            
+                            if start_local_date == d and end_local_date == d:
+                                time_str = f"{s_time} - {e_time}"
+                            elif start_local_date == d:
+                                # Starts today, ends tomorrow
+                                time_str = f"{s_time} →"
+                            elif end_local_date == d:
+                                # Started yesterday, ends today
+                                time_str = f"→ {e_time}"
+                            else:
+                                # Ongoing multi-day event
+                                time_str = self.translate("all_day", "All Day")
                             
                     events.append({
                         "summary": summary,
