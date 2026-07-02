@@ -44,6 +44,12 @@
       "title": "Lookahead Days",
       "description": "How many days in the future to search for upcoming events."
     },
+    "show_header": {
+      "type": "boolean",
+      "default": true,
+      "title": "Show Header",
+      "description": "Show or hide the module's header/title."
+    },
     "calendars": {
       "type": "array",
       "title": "Calendars",

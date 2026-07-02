@@ -44,6 +44,7 @@ class CalendarModule:
         self.time_format = config.get("time_format") or global_cfg.get("time_format", "24h")
         self.max_events = config.get("max_events", 10)
         self.maximum_days = config.get("maximum_days", 7)
+        self.show_header = config.get("show_header", True)
         # Resolve calendars config safely
         self.calendars_cfg = []
         raw_calendars = config.get("calendars", [])
@@ -367,7 +368,8 @@ class CalendarModule:
                 html = self.render_template(
                     "widget.html",
                     grouped_events=grouped_events,
-                    last_checked=datetime.now().strftime("%H:%M")
+                    last_checked=datetime.now().strftime("%H:%M"),
+                    show_header=self.show_header
                 )
                 
                 # 7. Broadcast HTML update to the UI
