@@ -17,5 +17,11 @@ uv pip install -e .
 
 ![Calendar Widget Screenshot](screenshot.png)
 
+## Troubleshooting
+
+### Calendar events are not showing up
+*   Verify that your calendar URL is public and ends with `.ics`. 
+*   Google Calendar private links must be the "Secret address in iCal format" found in your Google Calendar settings.
+
 ## License
 [PolyForm Noncommercial License 1.0.0](LICENSE.md)
