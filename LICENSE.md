@@ -1,6 +1,6 @@
-# MirrorDash License
+# MirrorDash Calendar License
 
-Required Notice: Copyright (C) 2026 Jonas Öhlander (https://github.com/Menturan/MirrorDash)
+Required Notice: Copyright (C) 2026 Jonas Öhlander (https://github.com/Menturan/mirrordash-calendar)
 
 ---
 
