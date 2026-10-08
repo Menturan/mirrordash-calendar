@@ -2,19 +2,26 @@
 name = "mirrordash-calendar"
 version = "1.0.1"
 description = "Detailed calendar module showing upcoming events"
+requires-python = ">=3.14"
 authors = [
     { name = "MirrorDash Developer" }
 ]
+# The mirror provides the rest (rendering, fetch_json, translations); add only what plugin.py imports
 dependencies = [
-    "jinja2",
     "icalendar",
     "recurring-ical-events",
     "babel",
-    "httpx"
+    "httpx",
 ]
 
 [project.entry-points."mirrordash.modules"]
 mirrordash_calendar = "mirrordash_calendar.plugin:CalendarModule"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
 
 [build-system]
 requires = ["hatchling"]

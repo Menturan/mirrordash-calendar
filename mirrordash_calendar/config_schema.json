@@ -4,29 +4,6 @@
   "description": "Upcoming events from your calendars.",
   "type": "object",
   "properties": {
-    "enabled": {
-      "type": "boolean",
-      "default": true,
-      "title": "Enabled",
-      "description": "Enable or disable this module."
-    },
-    "position": {
-      "type": "string",
-      "default": "middle_left",
-      "enum": [
-        "top_left",
-        "top_center",
-        "top_right",
-        "middle_left",
-        "middle_center",
-        "middle_right",
-        "bottom_left",
-        "bottom_center",
-        "bottom_right"
-      ],
-      "title": "Screen Position",
-      "description": "Where to display this module on the mirror screen."
-    },
     "interval": {
       "type": "integer",
       "default": 300,
@@ -82,9 +59,14 @@
             "default": "calendar"
           }
         },
-        "required": ["name", "url"]
+        "required": [
+          "name",
+          "url"
+        ]
       }
     }
   },
-  "required": ["enabled", "position", "interval"]
+  "required": [
+    "interval"
+  ]
 }

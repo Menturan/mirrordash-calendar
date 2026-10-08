@@ -31,49 +31,19 @@
                 {% endfor %}
             </div>
         {% else %}
-            <div class="calendar-empty">
-                <i data-lucide="calendar-off" class="calendar-empty-icon"></i>
-                <span>{{ translations.get("no_events", "No upcoming events") }}</span>
-            </div>
+            <div class="module-message"><i data-lucide="calendar-off"></i><span>{{ translations.get("no_events", "No upcoming events") }}</span></div>
         {% endif %}
     </div>
 </div>
 
+<!-- Header and messages come from modules.css; only the agenda's own look is here -->
 <style>
 .calendar-container {
     display: flex;
     flex-direction: column;
     width: 100%;
     max-width: 380px;
-    font-family: var(--mirror-font-family, sans-serif);
     color: var(--color-standard-gray, #999999);
-}
-
-/* Align module header based on position */
-#top_right .calendar-container,
-#middle_right .calendar-container,
-#bottom_right .calendar-container {
-    align-items: flex-end;
-    text-align: right;
-}
-
-#top_right .calendar-day-header,
-#middle_right .calendar-day-header,
-#bottom_right .calendar-day-header {
-    justify-content: flex-end;
-}
-
-#top_left .calendar-container,
-#middle_left .calendar-container,
-#bottom_left .calendar-container {
-    align-items: flex-start;
-    text-align: left;
-}
-
-#top_left .calendar-day-header,
-#middle_left .calendar-day-header,
-#bottom_left .calendar-day-header {
-    justify-content: flex-start;
 }
 
 .calendar-body {
@@ -175,25 +145,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.calendar-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 24px 0;
-    color: var(--color-dimmed-charcoal, #666666);
-    font-style: italic;
-    font-size: 14px;
-    gap: 8px;
-}
-
-.calendar-empty-icon {
-    width: 20px;
-    height: 20px;
-    stroke-width: 1.5px;
-    color: var(--color-dimmed-charcoal, #666666);
 }
 
 @keyframes calFadeIn {
