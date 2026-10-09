@@ -256,7 +256,7 @@ class CalendarModule:
         while True:
             try:
                 # 1. Fetch all feeds in parallel; a feed that is down gives its last answer, or nothing
-                answers = await asyncio.gather(*(self.fetch(cal.get("url")) for cal in self.calendars_cfg))
+                answers = await asyncio.gather(*(self.fetch(cal.get("url"), max_age=self.interval) for cal in self.calendars_cfg))
                 ics_contents = [data or b"" for data, _ in answers]
 
                 # 2. Process all events
