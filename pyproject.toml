@@ -6,12 +6,11 @@ requires-python = ">=3.14"
 authors = [
     { name = "MirrorDash Developer" }
 ]
-# The mirror provides the rest (rendering, fetch_json, translations); add only what plugin.py imports
+# The mirror provides the rest (rendering, fetch_json/fetch, translations); add only what plugin.py imports
 dependencies = [
     "icalendar",
     "recurring-ical-events",
     "babel",
-    "httpx",
 ]
 
 [project.entry-points."mirrordash.modules"]

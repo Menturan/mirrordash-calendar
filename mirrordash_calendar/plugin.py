@@ -1,10 +1,7 @@
 import asyncio
 import logging
-import os
-import hashlib
 from datetime import datetime, timedelta, date, time
 from zoneinfo import ZoneInfo
-import httpx
 from icalendar import Calendar
 import recurring_ical_events
 
@@ -30,7 +27,6 @@ class CalendarModule:
         
         # Writable directories
         self.data_dir = config.get("data_dir")
-        self.cache_dir = config.get("cache_dir")
         
         # Translations
         self.translations = config.get("translations", {})
@@ -107,44 +103,6 @@ class CalendarModule:
         if val is not None:
             return val
         return default if default is not None else key
-
-    async def fetch_feed(self, client: httpx.AsyncClient, url: str) -> bytes:
-        """Fetch ICS feed from URL, saving to cache if successful, or falling back to cache if down."""
-        cache_filename = hashlib.md5(url.encode('utf-8')).hexdigest() + ".ics"
-        cache_path = os.path.join(self.cache_dir, cache_filename) if self.cache_dir else None
-        
-        try:
-            logger.info(f"Fetching calendar feed: {url}")
-            response = await client.get(url, timeout=10.0, follow_redirects=True)
-            if response.status_code == 200:
-                data = response.content
-                if cache_path:
-                    try:
-                        def save_to_file():
-                            with open(cache_path, "wb") as f:
-                                f.write(data)
-                        await asyncio.to_thread(save_to_file)
-                        logger.debug(f"Saved calendar cache to {cache_path}")
-                    except Exception as ce:
-                        logger.warning(f"Could not save calendar cache: {ce}")
-                return data
-            else:
-                logger.warning(f"Calendar feed returned status {response.status_code} for {url}")
-        except Exception as e:
-            logger.warning(f"Failed to fetch calendar feed {url}: {e}")
-            
-        # Fallback to cache if request failed
-        if cache_path and os.path.exists(cache_path):
-            try:
-                logger.info(f"Using cached calendar data for {url}")
-                def read_from_file():
-                    with open(cache_path, "rb") as f:
-                        return f.read()
-                return await asyncio.to_thread(read_from_file)
-            except Exception as re:
-                logger.error(f"Failed to read calendar cache from {cache_path}: {re}")
-                
-        return b""
 
     def process_calendar_data(self, ics_data: bytes, cal_cfg: dict, today_date: date, start_dt: datetime, end_dt: datetime) -> list[dict]:
         """Parse raw ICS data, expand recurring rules, and structure events list."""
@@ -297,12 +255,10 @@ class CalendarModule:
         logger.info(f"Starting {self.name} run loop")
         while True:
             try:
-                # 1. Fetch all feeds in parallel using httpx client
-                ics_contents = []
-                async with httpx.AsyncClient(verify=True) as client:
-                    tasks = [self.fetch_feed(client, cal.get("url")) for cal in self.calendars_cfg]
-                    ics_contents = await asyncio.gather(*tasks)
-                    
+                # 1. Fetch all feeds in parallel; a feed that is down gives its last answer, or nothing
+                answers = await asyncio.gather(*(self.fetch(cal.get("url")) for cal in self.calendars_cfg))
+                ics_contents = [data or b"" for data, _ in answers]
+
                 # 2. Process all events
                 now_tz = datetime.now(self.tz)
                 today_date = now_tz.date()

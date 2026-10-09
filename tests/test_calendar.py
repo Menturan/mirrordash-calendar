@@ -1,6 +1,5 @@
 import pytest
 import asyncio
-import httpx
 import datetime
 from unittest.mock import MagicMock, AsyncMock, patch
 from zoneinfo import ZoneInfo
@@ -174,28 +173,20 @@ async def test_resilience_to_feed_fetching_errors():
     module = CalendarModule(config)
     module.render_template = MagicMock(return_value="<div>Rendered</div>")
     
-    # Mock HTTP client responses: Valid Feed succeeds, Failing Feed raises exception
-    async def mock_get(url, *args, **kwargs):
-        mock_resp = MagicMock()
-        if "valid.ics" in url:
-            mock_resp.status_code = 200
-            mock_resp.content = MOCK_ICS.encode('utf-8')
-            return mock_resp
-        else:
-            raise httpx.RequestError("Connection timeout")
-            
+    # Valid Feed answers; Failing Feed is offline with nothing cached
+    module.fetch = AsyncMock(side_effect=lambda url, **kw: (MOCK_ICS.encode('utf-8'), None)
+                             if "valid.ics" in url else (None, "offline"))
     broadcast_mock = AsyncMock()
-    
-    with patch("httpx.AsyncClient.get", side_effect=mock_get):
-        # We patch asyncio.sleep to raise CancelledError on second iteration to break the loop
-        async def mock_sleep(secs):
-            raise asyncio.CancelledError()
-            
-        with patch("asyncio.sleep", side_effect=mock_sleep):
-            try:
-                await module.run_loop(broadcast_mock)
-            except asyncio.CancelledError:
-                pass
+
+    # asyncio.sleep raises CancelledError to end the loop after one round
+    async def mock_sleep(secs):
+        raise asyncio.CancelledError()
+
+    with patch("asyncio.sleep", side_effect=mock_sleep):
+        try:
+            await module.run_loop(broadcast_mock)
+        except asyncio.CancelledError:
+            pass
                 
     # Verify that template rendering was still called (with events from Valid Feed)
     # and that the broadcast function was called
@@ -208,35 +199,6 @@ async def test_resilience_to_feed_fetching_errors():
     # Total events processed should be 5 from the Valid Feed, despite Failing Feed timeout
     total_events = sum(len(g["events"]) for g in grouped)
     assert total_events == 5
-
-@pytest.mark.asyncio
-async def test_cache_fallback():
-    config = {
-        "globals": {"timezone": "Europe/Stockholm", "language": "en"},
-        "calendars": [
-            {"name": "Test Cache", "url": "http://example.com/cache_test.ics"}
-        ],
-        "max_events": 10,
-        "maximum_days": 7,
-        "cache_dir": "/tmp/mock_cache_dir"
-    }
-    
-    module = CalendarModule(config)
-    
-    # Mocking os/file operations and requests
-    async def mock_get_fail(*args, **kwargs):
-        raise httpx.RequestError("Network down")
-        
-    mock_exists = MagicMock(return_value=True)
-    mock_open_ctx = MagicMock()
-    mock_open_ctx.__enter__.return_value = MagicMock(read=MagicMock(return_value=MOCK_ICS.encode('utf-8')))
-    
-    with patch("httpx.AsyncClient.get", side_effect=mock_get_fail):
-        with patch("os.path.exists", mock_exists):
-            with patch("builtins.open", return_value=mock_open_ctx):
-                client = MagicMock()
-                data = await module.fetch_feed(client, config["calendars"][0]["url"])
-                assert data == MOCK_ICS.encode('utf-8')
 
 @pytest.mark.asyncio
 async def test_calendars_config_robustness():
