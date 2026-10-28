@@ -25,4 +25,4 @@ Developing it: `uv run pytest` runs its tests, and `uvx mirrordash-sdk validate 
 *   Google Calendar private links must be the "Secret address in iCal format" found in your Google Calendar settings.
 
 ## License
-[PolyForm Noncommercial License 1.0.0](LICENSE.md)
+[MIT](LICENSE)

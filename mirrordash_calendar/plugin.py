@@ -321,7 +321,6 @@ class CalendarModule:
         html = self.render_template(
             "widget.html",
             grouped_events=grouped_events,
-            last_checked=datetime.now().strftime("%H:%M"),
             show_header=self.show_header
         )
         logger.info(f"Rendering {self.name} with {len(display_events)} upcoming events")
