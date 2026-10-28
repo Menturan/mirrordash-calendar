@@ -250,92 +250,79 @@ class CalendarModule:
                     
         return events
 
-    async def run_loop(self, broadcast_func):
-        """The main lifecycle loop. Fetch feeds, parse occurrences, group, and broadcast."""
-        logger.info(f"Starting {self.name} run loop")
-        while True:
-            try:
-                # 1. Fetch all feeds in parallel; a feed that is down gives its last answer, or nothing
-                answers = await asyncio.gather(*(self.fetch(cal.get("url"), max_age=self.interval) for cal in self.calendars_cfg))
-                ics_contents = [data or b"" for data, _ in answers]
+    async def render(self) -> str:
+        """Fetch feeds, parse occurrences, group, and render; the mirror shows it every interval."""
+        # 1. Fetch all feeds in parallel; a feed that is down gives its last answer, or nothing
+        answers = await asyncio.gather(*(self.fetch(cal.get("url")) for cal in self.calendars_cfg))
+        ics_contents = [data or b"" for data, _ in answers]
 
-                # 2. Process all events
-                now_tz = datetime.now(self.tz)
-                today_date = now_tz.date()
-                
-                # Start window is today at 00:00:00
-                window_start = datetime.combine(today_date, time.min, tzinfo=self.tz)
-                # End window is today + maximum_days at 23:59:59
-                window_end = datetime.combine(today_date + timedelta(days=self.maximum_days), time.max, tzinfo=self.tz)
-                
-                all_events = []
-                for idx, cal_cfg in enumerate(self.calendars_cfg):
-                    if idx < len(ics_contents):
-                        cal_events = self.process_calendar_data(
-                            ics_contents[idx],
-                            cal_cfg,
-                            today_date,
-                            window_start,
-                            window_end
-                        )
-                        all_events.extend(cal_events)
-                        
-                # 3. Sort events
-                # Rule: Sort by local event date, then all-day events first, then start time, then title
-                # To sort all-day first, we map all_day to 0, timed to 1.
-                all_events.sort(key=lambda x: (
-                    x["date"],
-                    0 if x["all_day"] else 1,
-                    x["start_dt"],
-                    x["summary"]
-                ))
-                
-                # 4. Limit to max_events
-                display_events = all_events[:self.max_events]
-                
-                # 5. Group by local date
-                grouped_events = []
-                current_date = None
-                current_group = None
-                
-                for ev in display_events:
-                    ev_date = ev["date"]
-                    if ev_date != current_date:
-                        current_date = ev_date
-                        
-                        # Determine day label
-                        diff_days = (ev_date - today_date).days
-                        if diff_days == 0:
-                            day_label = self.translate("today", "Today").upper()
-                        elif diff_days == 1:
-                            day_label = self.translate("tomorrow", "Tomorrow").upper()
-                        else:
-                            day_label = format_date(ev_date, self.lang)
-                            
-                        current_group = {
-                            "day_label": day_label,
-                            "events": []
-                        }
-                        grouped_events.append(current_group)
-                        
-                    current_group["events"].append(ev)
-                    
-                # 6. Render dynamic HTML using Jinja2 template
-                html = self.render_template(
-                    "widget.html",
-                    grouped_events=grouped_events,
-                    last_checked=datetime.now().strftime("%H:%M"),
-                    show_header=self.show_header
+        # 2. Process all events
+        now_tz = datetime.now(self.tz)
+        today_date = now_tz.date()
+        
+        # Start window is today at 00:00:00
+        window_start = datetime.combine(today_date, time.min, tzinfo=self.tz)
+        # End window is today + maximum_days at 23:59:59
+        window_end = datetime.combine(today_date + timedelta(days=self.maximum_days), time.max, tzinfo=self.tz)
+        
+        all_events = []
+        for idx, cal_cfg in enumerate(self.calendars_cfg):
+            if idx < len(ics_contents):
+                cal_events = self.process_calendar_data(
+                    ics_contents[idx],
+                    cal_cfg,
+                    today_date,
+                    window_start,
+                    window_end
                 )
+                all_events.extend(cal_events)
                 
-                # 7. Broadcast HTML update to the UI
-                logger.info(f"Broadcasting update for {self.name} with {len(display_events)} upcoming events")
-                await broadcast_func(self.name, html)
+        # 3. Sort events
+        # Rule: Sort by local event date, then all-day events first, then start time, then title
+        # To sort all-day first, we map all_day to 0, timed to 1.
+        all_events.sort(key=lambda x: (
+            x["date"],
+            0 if x["all_day"] else 1,
+            x["start_dt"],
+            x["summary"]
+        ))
+        
+        # 4. Limit to max_events
+        display_events = all_events[:self.max_events]
+        
+        # 5. Group by local date
+        grouped_events = []
+        current_date = None
+        current_group = None
+        
+        for ev in display_events:
+            ev_date = ev["date"]
+            if ev_date != current_date:
+                current_date = ev_date
                 
-            except asyncio.CancelledError:
-                logger.info(f"Stopping {self.name} run loop.")
-                raise
-            except Exception as e:
-                logger.error(f"Error in module {self.name} run_loop: {e}", exc_info=True)
+                # Determine day label
+                diff_days = (ev_date - today_date).days
+                if diff_days == 0:
+                    day_label = self.translate("today", "Today").upper()
+                elif diff_days == 1:
+                    day_label = self.translate("tomorrow", "Tomorrow").upper()
+                else:
+                    day_label = format_date(ev_date, self.lang)
+                    
+                current_group = {
+                    "day_label": day_label,
+                    "events": []
+                }
+                grouped_events.append(current_group)
                 
-            await asyncio.sleep(self.interval)
+            current_group["events"].append(ev)
+            
+        # 6. Render dynamic HTML using Jinja2 template
+        html = self.render_template(
+            "widget.html",
+            grouped_events=grouped_events,
+            last_checked=datetime.now().strftime("%H:%M"),
+            show_header=self.show_header
+        )
+        logger.info(f"Rendering {self.name} with {len(display_events)} upcoming events")
+        return html

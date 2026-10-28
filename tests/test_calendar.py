@@ -1,8 +1,6 @@
 import pytest
-import asyncio
 import datetime
 from unittest.mock import MagicMock, AsyncMock, patch
-from zoneinfo import ZoneInfo
 from mirrordash_calendar.plugin import CalendarModule, format_date
 
 @pytest.fixture(autouse=True)
@@ -176,22 +174,10 @@ async def test_resilience_to_feed_fetching_errors():
     # Valid Feed answers; Failing Feed is offline with nothing cached
     module.fetch = AsyncMock(side_effect=lambda url, **kw: (MOCK_ICS.encode('utf-8'), None)
                              if "valid.ics" in url else (None, "offline"))
-    broadcast_mock = AsyncMock()
-
-    # asyncio.sleep raises CancelledError to end the loop after one round
-    async def mock_sleep(secs):
-        raise asyncio.CancelledError()
-
-    with patch("asyncio.sleep", side_effect=mock_sleep):
-        try:
-            await module.run_loop(broadcast_mock)
-        except asyncio.CancelledError:
-            pass
+    html = await module.render()
                 
     # Verify that template rendering was still called (with events from Valid Feed)
-    # and that the broadcast function was called
-    assert module.render_template.called
-    assert broadcast_mock.called
+    assert html == "<div>Rendered</div>"
     
     # Inspect arguments passed to render_template
     kwargs = module.render_template.call_args[1]
