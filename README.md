@@ -19,6 +19,10 @@ Developing it: `uv run pytest` runs its tests, and `uvx mirrordash-sdk validate 
 
 ![Calendar Widget Screenshot](screenshot.png)
 
+The week view:
+
+![Calendar week view](screenshot-week.png)
+
 The month view:
 
 ![Calendar month view](screenshot-month.png)
