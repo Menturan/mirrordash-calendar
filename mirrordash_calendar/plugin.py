@@ -1,13 +1,18 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta, date, time
+from datetime import date, datetime, time, timedelta
 from zoneinfo import ZoneInfo
-from icalendar import Calendar
+
 import recurring_ical_events
+from babel import Locale
+from babel.dates import format_date as babel_format_date
+from babel.dates import get_day_names
+from icalendar import Calendar
 
 logger = logging.getLogger("mirrordash.modules.mirrordash_calendar")
 
-from babel.dates import format_date as babel_format_date
+# ponytail: fixed rows per day cell (bars count too), the rest becomes "+N"; a setting if owners ask
+DAY_CAP = {"week": 6, "month": 3}
 
 def format_date(d: date, lang: str) -> str:
     """Format a date string in an elegant, localized way using Babel."""
@@ -41,6 +46,9 @@ class CalendarModule:
         self.max_events = config.get("max_events", 10)
         self.maximum_days = config.get("maximum_days", 7)
         self.show_header = config.get("show_header", True)
+        self.view = config.get("view", "list")
+        if self.view not in ("list", "week", "month"):
+            self.view = "list"
         # Resolve calendars config safely
         self.calendars_cfg = []
         raw_calendars = config.get("calendars", [])
@@ -105,7 +113,11 @@ class CalendarModule:
         return default if default is not None else key
 
     def process_calendar_data(self, ics_data: bytes, cal_cfg: dict, today_date: date, start_dt: datetime, end_dt: datetime) -> list[dict]:
-        """Parse raw ICS data, expand recurring rules, and structure events list."""
+        """Parse raw ICS data, expand recurring rules, and structure events list.
+
+        today_date is the window's first day (today in the list, the grid's first cell otherwise); the
+        window runs to end_dt's day. Only the list drops events that have ended."""
+        window_days = (end_dt.date() - today_date).days
         if not ics_data:
             return []
             
@@ -166,7 +178,7 @@ class CalendarModule:
                 
             # Filter out events that have already ended
             now_tz = datetime.now(self.tz)
-            if end_aware <= now_tz:
+            if self.view == "list" and end_aware <= now_tz:
                 continue
                 
             # Find which local dates (in self.tz) this event intersects
@@ -187,7 +199,9 @@ class CalendarModule:
             is_multiday_allday = all_day and (end_local_date > start_local_date)
             
             # Loop through dates in lookahead window and check for intersections
-            for d_idx in range(self.maximum_days + 1):
+            s_time = start_aware.strftime("%H:%M") if self.time_format == "24h" else start_aware.strftime("%I:%M %p").lstrip('0')
+            short_time = self.translate("all_day", "All Day") if all_day else s_time
+            for d_idx in range(window_days + 1):
                 d = today_date + timedelta(days=d_idx)
                 if start_local_date <= d <= end_local_date:
                     if is_multiday_allday:
@@ -221,7 +235,6 @@ class CalendarModule:
                         else:
                             # Event starts at start_aware, ends at end_aware.
                             # Check if start/end happens on this exact day d
-                            s_time = start_aware.strftime("%H:%M") if self.time_format == "24h" else start_aware.strftime("%I:%M %p").lstrip('0')
                             e_time = end_aware.strftime("%H:%M") if self.time_format == "24h" else end_aware.strftime("%I:%M %p").lstrip('0')
                             
                             if start_local_date == d and end_local_date == d:
@@ -245,10 +258,76 @@ class CalendarModule:
                         "calendar_color": cal_cfg.get("color", "#ffffff"),
                         "calendar_icon": cal_cfg.get("icon", "calendar"),
                         "date": d,
-                        "time_str": time_str
+                        "time_str": time_str,
+                        "short_time": short_time,
+                        "first_day": start_local_date,
+                        "last_day": end_local_date,
                     })
                     
         return events
+
+    def first_week_day(self) -> int:
+        """0 = Monday … 6 = Sunday, as the language's calendars start the week (Monday in Swedish)."""
+        try:
+            return Locale.parse(self.lang).first_week_day
+        except Exception:
+            return 0
+
+    def grid_window(self, today: date) -> tuple[date, date]:
+        """First and last cell of the grid: this week, or the whole weeks that hold this month."""
+        fwd = self.first_week_day()
+        week_start = lambda d: d - timedelta(days=(d.weekday() - fwd) % 7)  # noqa: E731
+        if self.view == "week":
+            start = week_start(today)
+            return start, start + timedelta(days=6)
+        first = today.replace(day=1)
+        last = (first + timedelta(days=32)).replace(day=1) - timedelta(days=1)
+        return week_start(first), week_start(last) + timedelta(days=6)
+
+    def build_grid(self, events: list[dict], start: date, end: date, today: date) -> list[dict]:
+        """Lay events out in weeks of 7 cells: multi-day events as bars in lanes, the rest in their day."""
+        cap = DAY_CAP[self.view]
+        singles, bars = {}, {}
+        for ev in events:
+            if ev["last_day"] > ev["first_day"]:
+                # A timed event over several days comes once per day; one bar is enough
+                bars.setdefault((ev["summary"], ev["start_dt"], ev["calendar_name"]), ev)
+            else:
+                singles.setdefault(ev["date"], []).append(ev)
+        bars = sorted(bars.values(), key=lambda b: (b["first_day"], b["first_day"] - b["last_day"], b["summary"]))
+
+        weeks = []
+        for w in range(((end - start).days + 1) // 7):
+            ws = start + timedelta(days=7 * w)
+            we = ws + timedelta(days=6)
+            lanes = []  # greedy: a bar goes in the first lane whose last bar ended before it starts
+            for ev in bars:
+                if ev["last_day"] < ws or ev["first_day"] > we:
+                    continue
+                c0, c1 = max(0, (ev["first_day"] - ws).days), min(6, (ev["last_day"] - ws).days)
+                lane = next((lane for lane in lanes if lane["end"] < c0), None)
+                if lane is None:
+                    lane = {"end": -1, "bars": []}
+                    lanes.append(lane)
+                lane["end"] = c1
+                lane["bars"].append({"ev": ev, "col": c0 + 1, "span": c1 - c0 + 1,
+                                     "past": ws + timedelta(days=c1) < today})
+            used, hidden = [0] * 7, [0] * 7
+            for i, lane in enumerate(lanes):
+                for bar in lane["bars"]:
+                    for c in range(bar["col"] - 1, bar["col"] - 1 + bar["span"]):
+                        (used if i < cap else hidden)[c] += 1
+            days = []
+            for i in range(7):
+                d = ws + timedelta(days=i)
+                evs = singles.get(d, [])
+                room = cap - used[i]
+                shown = evs if len(evs) <= room and not hidden[i] else evs[:max(0, room - 1)]
+                days.append({"date": d, "num": d.day, "is_today": d == today, "is_past": d < today,
+                             "in_month": self.view == "week" or d.month == today.month,
+                             "events": shown, "more": len(evs) - len(shown) + hidden[i]})
+            weeks.append({"days": days, "lanes": [lane["bars"] for lane in lanes[:cap]]})
+        return weeks
 
     async def render(self) -> str:
         """Fetch feeds, parse occurrences, group, and render; the mirror shows it every interval."""
@@ -259,24 +338,27 @@ class CalendarModule:
         # 2. Process all events
         now_tz = datetime.now(self.tz)
         today_date = now_tz.date()
-        
-        # Start window is today at 00:00:00
-        window_start = datetime.combine(today_date, time.min, tzinfo=self.tz)
-        # End window is today + maximum_days at 23:59:59
-        window_end = datetime.combine(today_date + timedelta(days=self.maximum_days), time.max, tzinfo=self.tz)
-        
+
+        # The list: today .. today + maximum_days; the grid: whole weeks around today or this month
+        if self.view == "list":
+            first_day, last_day = today_date, today_date + timedelta(days=self.maximum_days)
+        else:
+            first_day, last_day = self.grid_window(today_date)
+        window_start = datetime.combine(first_day, time.min, tzinfo=self.tz)
+        window_end = datetime.combine(last_day, time.max, tzinfo=self.tz)
+
         all_events = []
         for idx, cal_cfg in enumerate(self.calendars_cfg):
             if idx < len(ics_contents):
                 cal_events = self.process_calendar_data(
                     ics_contents[idx],
                     cal_cfg,
-                    today_date,
+                    first_day,
                     window_start,
                     window_end
                 )
                 all_events.extend(cal_events)
-                
+
         # 3. Sort events
         # Rule: Sort by local event date, then all-day events first, then start time, then title
         # To sort all-day first, we map all_day to 0, timed to 1.
@@ -287,6 +369,23 @@ class CalendarModule:
             x["summary"]
         ))
         
+        if self.view != "list":
+            fwd = self.first_week_day()
+            names = get_day_names("abbreviated", locale=self.lang)
+            if self.view == "week":
+                week_no = (first_day + timedelta(days=3)).isocalendar().week
+                title = f"{self.translate('week', 'Week')} {week_no}"
+            else:
+                title = babel_format_date(today_date, format="LLLL y", locale=self.lang)
+            return self.render_template(
+                "widget.html",
+                view=self.view,
+                title=title,
+                weekdays=[names[(fwd + i) % 7] for i in range(7)],
+                weeks=self.build_grid(all_events, first_day, last_day, today_date),
+                show_header=self.show_header,
+            )
+
         # 4. Limit to max_events
         display_events = all_events[:self.max_events]
         
@@ -320,6 +419,7 @@ class CalendarModule:
         # 6. Render dynamic HTML using Jinja2 template
         html = self.render_template(
             "widget.html",
+            view="list",
             grouped_events=grouped_events,
             show_header=self.show_header
         )

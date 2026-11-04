@@ -10,17 +10,25 @@
       "title": "Update Interval (Seconds)",
       "description": "Time to wait between calendar feed updates (e.g., 300 seconds = 5 minutes)."
     },
+    "view": {
+      "type": "string",
+      "default": "list",
+      "enum": ["list", "week", "month"],
+      "enum_titles": ["List", "Week", "Month"],
+      "title": "View",
+      "description": "List: the next events, day by day. Week: this week, Monday to Sunday. Month: this month as a grid, events over several days as bars. Want two views? Add the module twice."
+    },
     "max_events": {
       "type": "integer",
       "default": 10,
       "title": "Max Events",
-      "description": "Maximum number of upcoming events to display."
+      "description": "Maximum number of upcoming events to display (list view)."
     },
     "maximum_days": {
       "type": "integer",
       "default": 7,
       "title": "Lookahead Days",
-      "description": "How many days in the future to search for upcoming events."
+      "description": "How many days in the future to search for upcoming events (list view)."
     },
     "show_header": {
       "type": "boolean",

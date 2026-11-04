@@ -6,5 +6,6 @@
   "all_day": "Heldag",
   "no_events": "Inga kommande händelser",
   "error_fetching": "Kunde inte läsa kalendrar",
-  "now": "Nu"
+  "now": "Nu",
+  "week": "Vecka"
 }

@@ -338,3 +338,80 @@ END:VCALENDAR"""
     ongoing_trips_sv = [e for e in events_sv if e["summary"] == "Ongoing Trip"]
     assert len(ongoing_trips_sv) == 1
     assert ongoing_trips_sv[0]["time_str"] == "Nu - 4 juni"
+
+
+GRID_ICS = """BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+UID:past@example.com
+DTSTART:20260601T090000Z
+DTEND:20260601T100000Z
+SUMMARY:Monday Past
+END:VEVENT
+BEGIN:VEVENT
+UID:trip@example.com
+DTSTART;VALUE=DATE:20260605
+DTEND;VALUE=DATE:20260610
+SUMMARY:Trip
+END:VEVENT
+BEGIN:VEVENT
+UID:overlap@example.com
+DTSTART;VALUE=DATE:20260606
+DTEND;VALUE=DATE:20260608
+SUMMARY:Overlap
+END:VEVENT
+BEGIN:VEVENT
+UID:busy@example.com
+DTSTART:20260616T060000Z
+DTEND:20260616T063000Z
+RRULE:FREQ=HOURLY;COUNT=5
+SUMMARY:Busy
+END:VEVENT
+END:VCALENDAR"""
+
+
+async def render_grid(view):
+    module = CalendarModule({
+        "globals": {"timezone": "Europe/Stockholm", "language": "sv"},
+        "calendars": [{"name": "Home", "url": "http://example.com/h.ics"}],
+        "view": view,
+    })
+    module.render_template = MagicMock(return_value="<div></div>")
+    module.fetch = AsyncMock(return_value=(GRID_ICS.encode(), None))
+    await module.render()
+    return module.render_template.call_args[1]
+
+
+@pytest.mark.asyncio
+async def test_week_view_is_monday_to_sunday_and_keeps_past_days():
+    kw = await render_grid("week")
+    assert kw["view"] == "week" and kw["title"] == "Week 23"  # no translations here: the default
+    assert kw["weekdays"][0].startswith("mån")
+    (week,) = kw["weeks"]
+    assert [d["date"] for d in week["days"]] == [datetime.date(2026, 6, d) for d in range(1, 8)]
+    monday = week["days"][0]
+    assert monday["is_past"] and [e["summary"] for e in monday["events"]] == ["Monday Past"]
+    assert monday["events"][0]["short_time"] == "11:00"
+    assert week["days"][2]["is_today"]
+    # Trip (Fri 5 – Tue 9) is clipped to Fri–Sun; Overlap (Sat–Sun) needs a second lane
+    assert [[(b["ev"]["summary"], b["col"], b["span"]) for b in lane] for lane in week["lanes"]] == \
+        [[("Trip", 5, 3)], [("Overlap", 6, 2)]]
+
+
+@pytest.mark.asyncio
+async def test_month_view_grid_bars_and_more():
+    kw = await render_grid("month")
+    assert kw["title"] == "juni 2026"
+    weeks = kw["weeks"]
+    # June 2026 starts on a Monday and ends on a Tuesday: 1 Jun .. 5 Jul, 5 rows
+    assert len(weeks) == 5
+    assert weeks[0]["days"][0]["date"] == datetime.date(2026, 6, 1)
+    assert weeks[-1]["days"][-1]["date"] == datetime.date(2026, 7, 5)
+    assert not weeks[-1]["days"][-1]["in_month"]
+    # The trip runs over the week boundary: Fri–Sun, then Mon–Tue
+    assert [(b["col"], b["span"]) for b in weeks[0]["lanes"][0]] == [(5, 3)]
+    assert [(b["ev"]["summary"], b["col"], b["span"]) for b in weeks[1]["lanes"][0]] == [("Trip", 1, 2)]
+    # Five events on Tue 16 Jun: two shown and "+3" fill the three rows
+    tuesday = weeks[2]["days"][1]
+    assert tuesday["date"] == datetime.date(2026, 6, 16)
+    assert len(tuesday["events"]) == 2 and tuesday["more"] == 3

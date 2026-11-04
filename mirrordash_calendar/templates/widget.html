@@ -1,8 +1,54 @@
+{% if view and view != "list" %}
+<div class="calendar-container cal-grid view-{{ view }}">
+    {% if show_header %}
+    <h2 class="module-header">{{ title }}</h2>
+    {% endif %}
+    <div class="cal-weekdays">
+        {% for name in weekdays %}
+            {% if view == "week" %}
+                {% set day = weeks[0].days[loop.index0] %}
+                <span class="{{ 'today' if day.is_today else ('past' if day.is_past else '') }}">{{ name }}<b>{{ day.num }}</b></span>
+            {% else %}
+                <span>{{ name }}</span>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% set base = 2 if view == "month" else 1 %}
+    {% for week in weeks %}
+        <div class="cal-week">
+            {% if view == "month" %}
+                {% for day in week.days %}
+                    <div class="cal-num {{ 'today' if day.is_today else ('outside' if not day.in_month else ('past' if day.is_past else '')) }}" style="grid-column: {{ loop.index }};">{{ day.num }}</div>
+                {% endfor %}
+            {% endif %}
+            {% for lane in week.lanes %}
+                {% set row = base + loop.index0 %}
+                {% for bar in lane %}
+                    <div class="cal-bar {{ 'past' if bar.past else '' }}" title="{{ bar.ev.summary }}"
+                         style="grid-row: {{ row }}; grid-column: {{ bar.col }} / span {{ bar.span }}; border-color: {{ bar.ev.calendar_color }}; background: color-mix(in srgb, {{ bar.ev.calendar_color }} 16%, transparent);">{{ bar.ev.summary }}</div>
+                {% endfor %}
+            {% endfor %}
+            {% for day in week.days %}
+                <div class="cal-cell {{ 'outside' if not day.in_month else ('past' if day.is_past else '') }}" style="grid-row: {{ base + week.lanes|length }}; grid-column: {{ loop.index }};">
+                    {% for ev in day.events %}
+                        {% if view == "week" %}
+                            <div class="cal-ev" style="border-color: {{ ev.calendar_color }};"><span class="cal-time">{{ ev.short_time }}</span><span class="cal-title">{{ ev.summary }}</span></div>
+                        {% else %}
+                            <div class="cal-ev"><span class="cal-pip" style="background-color: {{ ev.calendar_color }};"></span><span class="cal-title">{{ ev.summary }}</span></div>
+                        {% endif %}
+                    {% endfor %}
+                    {% if day.more %}<div class="cal-more">+{{ day.more }}</div>{% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+</div>
+{% else %}
 <div class="calendar-container">
     {% if show_header %}
     <h2 class="module-header">{{ translations.get("title", "Upcoming Events") }}</h2>
     {% endif %}
-    
+
     <div class="calendar-body">
         {% if grouped_events and grouped_events|length > 0 %}
             <div class="calendar-groups">
@@ -35,6 +81,7 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
 
 <!-- Header and messages come from modules.css; only the agenda's own look is here -->
 <style>
@@ -146,6 +193,37 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* Week and month: 7 equal columns, days apart by space (no vertical lines), weeks by a faint line */
+.calendar-container.cal-grid { width: 40vw; max-width: none; }
+.cal-weekdays, .cal-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); column-gap: 8px; }
+.cal-weekdays { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+.cal-week { padding: 6px 0 10px; border-top: 1px solid #262626; row-gap: 3px; grid-auto-rows: min-content; }
+.cal-num { font-size: 14px; font-weight: 600; grid-row: 1; padding-bottom: 2px; }
+.cal-num.today { color: var(--color-void, #000); background: var(--color-high-contrast, #fff); border-radius: 999px;
+                 justify-self: start; min-width: 22px; text-align: center; padding: 1px 4px; }
+.cal-bar { font-size: 13px; color: var(--color-high-contrast, #fff); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+           padding: 1px 6px; border-left: 3px solid; border-radius: var(--radius-sm, 2px); }
+.cal-cell { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cal-ev { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--color-high-contrast, #fff); min-width: 0; }
+.cal-pip { width: 3px; height: 12px; border-radius: 1px; flex-shrink: 0; }
+.cal-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-more { font-size: 12px; padding-left: 8px; }
+.cal-grid .past { opacity: 0.4; }
+.cal-grid .outside { opacity: 0.25; }
+
+/* Week: roomier, the date in the heading, the time over the title */
+.view-week .cal-weekdays { margin-bottom: 0; }
+.view-week .cal-weekdays span { border-bottom: 1px solid var(--color-dimmed-charcoal, #666); padding-bottom: 6px; }
+.view-week .cal-weekdays b { display: block; font-size: 22px; font-weight: 300; letter-spacing: 0; color: var(--color-high-contrast, #fff); margin-top: 4px; }
+.view-week .cal-weekdays .today { color: var(--color-high-contrast, #fff); border-bottom-color: var(--color-high-contrast, #fff); }
+.view-week .cal-weekdays .today b { font-weight: 600; }
+.view-week .cal-week { padding-top: 8px; border-top: none; }
+.view-week .cal-ev { flex-direction: column; align-items: stretch; gap: 0; border-left: 3px solid; padding-left: 6px; }
+.view-week .cal-time { font-size: 12px; color: var(--color-standard-gray, #999); }
+.view-week .cal-title { font-size: 15px; }
+.view-week .cal-cell { gap: 8px; margin-top: 4px; }
+.view-week .cal-bar { font-size: 14px; padding: 2px 6px; }
 
 @keyframes calFadeIn {
     from { opacity: 0; transform: translateY(2px); }
