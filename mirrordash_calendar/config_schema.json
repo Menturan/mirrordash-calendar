@@ -54,13 +54,15 @@
             "type": "string",
             "title": "Indicator Color",
             "description": "Hex color code or CSS custom property for event indicators (e.g., #ffffff, var(--color-ice-blue)).",
-            "default": "#ffffff"
+            "default": "#ffffff",
+            "format": "color"
           },
           "icon": {
             "type": "string",
             "title": "Lucide Icon",
             "description": "Lucide outline icon name to show next to events (e.g., calendar, music, alert-circle).",
-            "default": "calendar"
+            "default": "calendar",
+            "format": "icon"
           }
         },
         "required": ["name", "url"]
