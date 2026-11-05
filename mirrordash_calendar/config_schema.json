@@ -4,12 +4,6 @@
   "description": "Upcoming events from your calendars.",
   "type": "object",
   "properties": {
-    "interval": {
-      "type": "integer",
-      "default": 300,
-      "title": "Update Interval (Seconds)",
-      "description": "Time to wait between calendar feed updates (e.g., 300 seconds = 5 minutes)."
-    },
     "view": {
       "type": "string",
       "default": "list",
@@ -22,13 +16,15 @@
       "type": "integer",
       "default": 10,
       "title": "Max Events",
-      "description": "Maximum number of upcoming events to display (list view)."
+      "description": "Maximum number of upcoming events to display (list view).",
+      "show_if": {"view": ["list"]}
     },
     "maximum_days": {
       "type": "integer",
       "default": 7,
       "title": "Lookahead Days",
-      "description": "How many days in the future to search for upcoming events (list view)."
+      "description": "How many days in the future to search for upcoming events (list view).",
+      "show_if": {"view": ["list"]}
     },
     "show_header": {
       "type": "boolean",
@@ -67,14 +63,16 @@
             "default": "calendar"
           }
         },
-        "required": [
-          "name",
-          "url"
-        ]
+        "required": ["name", "url"]
       }
+    },
+    "interval": {
+      "type": "integer",
+      "default": 300,
+      "title": "Update Interval (Seconds)",
+      "description": "Time to wait between calendar feed updates (e.g., 300 seconds = 5 minutes).",
+      "group": "Advanced"
     }
   },
-  "required": [
-    "interval"
-  ]
+  "required": ["interval"]
 }
