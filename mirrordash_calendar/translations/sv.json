@@ -7,5 +7,14 @@
   "no_events": "Inga kommande händelser",
   "error_fetching": "Kunde inte läsa kalendrar",
   "now": "Nu",
-  "week": "Vecka"
+  "week": "Vecka",
+  "rrule_every_day": "varje dag",
+  "rrule_every_n_days": "var {n}:e dag",
+  "rrule_every_weekday_name": "varje {day}",
+  "rrule_weekdays": "vardagar",
+  "rrule_every_other_week": "varannan vecka",
+  "rrule_every_other_day_name": "varannan {day}",
+  "rrule_every_month": "varje månad",
+  "rrule_every_year": "varje år",
+  "and": "och"
 }

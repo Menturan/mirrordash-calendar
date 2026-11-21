@@ -182,9 +182,9 @@ async def test_resilience_to_feed_fetching_errors():
     # Inspect arguments passed to render_template
     kwargs = module.render_template.call_args[1]
     grouped = kwargs["grouped_events"]
-    # Total events processed should be 5 from the Valid Feed, despite Failing Feed timeout
+    # 3 rows from the Valid Feed (the daily meeting is shown once), despite Failing Feed timeout
     total_events = sum(len(g["events"]) for g in grouped)
-    assert total_events == 5
+    assert total_events == 3
 
 @pytest.mark.asyncio
 async def test_calendars_config_robustness():

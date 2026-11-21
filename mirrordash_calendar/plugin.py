@@ -9,6 +9,8 @@ from babel.dates import format_date as babel_format_date
 from babel.dates import get_day_names
 from icalendar import Calendar
 
+from .recurrence_text import describe_rrule
+
 logger = logging.getLogger("mirrordash.modules.mirrordash_calendar")
 
 # ponytail: fixed rows per day cell (bars count too), the rest becomes "+N"; a setting if owners ask
@@ -49,6 +51,9 @@ class CalendarModule:
         self.view = config.get("view", "list")
         if self.view not in ("list", "week", "month"):
             self.view = "list"
+        self.recurring = config.get("recurring", "next")
+        if self.recurring not in ("next", "all"):
+            self.recurring = "next"
         # Resolve calendars config safely
         self.calendars_cfg = []
         raw_calendars = config.get("calendars", [])
@@ -112,7 +117,8 @@ class CalendarModule:
             return val
         return default if default is not None else key
 
-    def process_calendar_data(self, ics_data: bytes, cal_cfg: dict, today_date: date, start_dt: datetime, end_dt: datetime) -> list[dict]:
+    def process_calendar_data(self, ics_data: bytes, cal_cfg: dict, today_date: date, start_dt: datetime, end_dt: datetime,
+                              cal_idx: int = 0) -> list[dict]:
         """Parse raw ICS data, expand recurring rules, and structure events list.
 
         today_date is the window's first day (today in the list, the grid's first cell otherwise); the
@@ -127,6 +133,18 @@ class CalendarModule:
             logger.error(f"Failed to parse iCalendar data: {e}")
             return []
             
+        # Repeating series by UID, from their master VEVENT: (RRULE or None, DTSTART)
+        collapse = self.view == "list" and self.recurring == "next"
+        masters, moved_uids = {}, set()
+        if collapse:
+            for comp in cal.walk("VEVENT"):
+                if not comp.get("uid"):
+                    continue
+                if comp.get("recurrence-id"):
+                    moved_uids.add(str(comp.get("uid")))  # a single occurrence that was changed
+                elif comp.get("dtstart") and (comp.get("rrule") or comp.get("rdate")):
+                    masters[str(comp.get("uid"))] = (comp.get("rrule"), comp["dtstart"].dt)
+
         events = []
         try:
             # Expand recurring events between start_dt and end_dt
@@ -143,6 +161,15 @@ class CalendarModule:
                 continue
                 
             summary = str(event.get('summary', ''))
+
+            # Part of a repeating series? (events without a UID are never collapsed)
+            series, rule_text = None, None
+            uid = str(event.get('uid', '')) if event.get('uid') else ""
+            if collapse and uid and (uid in masters or uid in moved_uids):
+                series = (cal_idx, uid)
+                rrule, master_start = masters.get(uid, (None, None))
+                if rrule:
+                    rule_text = describe_rrule(rrule, master_start, self.lang, self.translate)
             
             # Determine start & end datetime objects in self.tz timezone
             ev_start = dtstart.dt
@@ -262,9 +289,23 @@ class CalendarModule:
                         "short_time": short_time,
                         "first_day": start_local_date,
                         "last_day": end_local_date,
+                        **({"series": series, "rule_text": rule_text} if series else {}),
                     })
                     
         return events
+
+    @staticmethod
+    def collapse_series(events: list[dict]) -> list[dict]:
+        """Keep the first (sorted) event of each repeating series and mark it as repeating."""
+        seen, kept = set(), []
+        for ev in events:
+            series = ev.get("series")
+            if series is None:
+                kept.append(ev)
+            elif series not in seen:
+                seen.add(series)
+                kept.append({**ev, "repeat": True, "repeat_text": ev.get("rule_text")})
+        return kept
 
     def first_week_day(self) -> int:
         """0 = Monday … 6 = Sunday, as the language's calendars start the week (Monday in Swedish)."""
@@ -355,7 +396,8 @@ class CalendarModule:
                     cal_cfg,
                     first_day,
                     window_start,
-                    window_end
+                    window_end,
+                    idx
                 )
                 all_events.extend(cal_events)
 
@@ -386,7 +428,9 @@ class CalendarModule:
                 show_header=self.show_header,
             )
 
-        # 4. Limit to max_events
+        # 4. Show each repeating series once, at its next time; then limit to max_events
+        if self.recurring == "next":
+            all_events = self.collapse_series(all_events)
         display_events = all_events[:self.max_events]
         
         # 5. Group by local date

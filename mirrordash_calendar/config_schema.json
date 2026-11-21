@@ -26,6 +26,15 @@
       "description": "How many days in the future to search for upcoming events (list view).",
       "show_if": {"view": ["list"]}
     },
+    "recurring": {
+      "type": "string",
+      "default": "next",
+      "enum": ["next", "all"],
+      "enum_titles": ["Next only", "All"],
+      "title": "Recurring Events",
+      "description": "Next only: a repeating event is shown once, at its next time, with how often it repeats. All: every time it happens gets its own row (list view).",
+      "show_if": {"view": ["list"]}
+    },
     "show_header": {
       "type": "boolean",
       "default": true,

@@ -7,5 +7,14 @@
   "no_events": "No upcoming events",
   "error_fetching": "Error loading calendar feeds",
   "now": "Now",
-  "week": "Week"
+  "week": "Week",
+  "rrule_every_day": "every day",
+  "rrule_every_n_days": "every {n} days",
+  "rrule_every_weekday_name": "every {day}",
+  "rrule_weekdays": "weekdays",
+  "rrule_every_other_week": "every other week",
+  "rrule_every_other_day_name": "every other {day}",
+  "rrule_every_month": "every month",
+  "rrule_every_year": "every year",
+  "and": "and"
 }
