@@ -11,7 +11,8 @@
       "enum": ["list", "week", "month"],
       "enum_titles": ["List", "Week", "Month"],
       "title": "View",
-      "description": "List: the next events, day by day. Week: this week, Monday to Sunday. Month: this month as a grid, events over several days as bars. Want two views? Add the module twice."
+      "description": "How the events are laid out: a list, this week, or this month as a grid.",
+      "help": "List: the next events, day by day. Week: this week, Monday to Sunday. Month: this month as a grid, events over several days as bars. Want two views? Add the module twice."
     },
     "max_events": {
       "type": "integer",
@@ -33,7 +34,8 @@
       "enum": ["next", "all"],
       "enum_titles": ["Next only", "All"],
       "title": "Recurring Events",
-      "description": "Next only: a repeating event is shown once, at its next time, with how often it repeats. All: every time it happens gets its own row (list view).",
+      "description": "Show a repeating event once, or at every time it happens.",
+      "help": "Next only: a repeating event is shown once, at its next time, with how often it repeats. All: every time it happens gets its own row (list view).",
       "show_if": {"view": ["list"]}
     },
     "show_header": {
