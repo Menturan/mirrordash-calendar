@@ -2,10 +2,10 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Calendar",
   "requires_mirrordash": "0.21",
+  "preferred_width": "32rem",
   "description": "Upcoming events from your calendars.",
   "type": "object",
   "properties": {
-    "width_percent": {"default": 40},
     "layout": {
       "type": "string",
       "default": "list",

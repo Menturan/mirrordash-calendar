@@ -430,3 +430,12 @@ def test_heading_text_replaces_the_title_in_every_look():
     assert "<h2 class=\"module-header\">Family</h2>" in _render_widget(layout="month", show_header=True, heading="Family", title="June 2026")
     assert "June 2026</h2>" in _render_widget(layout="month", show_header=True, heading="", title="June 2026")
     assert "module-header" not in _render_widget(layout="list", show_header=False, heading="Family")
+
+
+def test_the_card_width_is_a_preferred_width_not_a_module_default():
+    import json
+    from pathlib import Path
+    import mirrordash_calendar
+    schema = json.loads((Path(mirrordash_calendar.__file__).parent / "config_schema.json").read_text())
+    assert schema["preferred_width"] == "32rem"
+    assert "width_percent" not in schema["properties"] and "height_percent" not in schema["properties"]
