@@ -374,7 +374,7 @@ async def render_grid(view):
     module = CalendarModule({
         "globals": {"timezone": "Europe/Stockholm", "language": "sv"},
         "calendars": [{"name": "Home", "url": "http://example.com/h.ics"}],
-        "view": view,
+        "layout": view,
     })
     module.render_template = MagicMock(return_value="<div></div>")
     module.fetch = AsyncMock(return_value=(GRID_ICS.encode(), None))
@@ -385,7 +385,7 @@ async def render_grid(view):
 @pytest.mark.asyncio
 async def test_week_view_is_monday_to_sunday_and_keeps_past_days():
     kw = await render_grid("week")
-    assert kw["view"] == "week" and kw["title"] == "Week 23"  # no translations here: the default
+    assert kw["layout"] == "week" and kw["title"] == "Week 23"  # no translations here: the default
     assert kw["weekdays"][0].startswith("mån")
     (week,) = kw["weeks"]
     assert [d["date"] for d in week["days"]] == [datetime.date(2026, 6, d) for d in range(1, 8)]
@@ -415,3 +415,18 @@ async def test_month_view_grid_bars_and_more():
     tuesday = weeks[2]["days"][1]
     assert tuesday["date"] == datetime.date(2026, 6, 16)
     assert len(tuesday["events"]) == 2 and tuesday["more"] == 3
+
+
+def _render_widget(**context):
+    from pathlib import Path
+    from jinja2 import Environment, FileSystemLoader
+    folder = Path(__file__).parent.parent / "mirrordash_calendar" / "templates"
+    template = Environment(loader=FileSystemLoader(folder)).get_template("widget.html")
+    return template.render(translations={}, grouped_events=[], weeks=[], weekdays=[], **context)
+
+
+def test_heading_text_replaces_the_title_in_every_look():
+    assert "<h2 class=\"module-header\">Family</h2>" in _render_widget(layout="list", show_header=True, heading="Family")
+    assert "<h2 class=\"module-header\">Family</h2>" in _render_widget(layout="month", show_header=True, heading="Family", title="June 2026")
+    assert "June 2026</h2>" in _render_widget(layout="month", show_header=True, heading="", title="June 2026")
+    assert "module-header" not in _render_widget(layout="list", show_header=False, heading="Family")

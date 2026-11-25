@@ -78,7 +78,7 @@ def make_module(feeds, view="list", **extra):
     module = CalendarModule({
         "globals": {"timezone": "Europe/Stockholm", "language": "en"},
         "calendars": [{"name": f"Cal{i}", "url": f"http://example.com/{i}.ics"} for i in range(len(feeds))],
-        "view": view,
+        "layout": view,
         "translations": json.loads((TRANSLATIONS / "en.json").read_text()),
         **extra,
     })

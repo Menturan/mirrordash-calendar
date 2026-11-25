@@ -1,48 +1,43 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Calendar",
-  "requires_mirrordash": "0.13",
+  "requires_mirrordash": "0.21",
   "description": "Upcoming events from your calendars.",
   "type": "object",
   "properties": {
-    "view": {
+    "width_percent": {"default": 40},
+    "layout": {
       "type": "string",
       "default": "list",
       "enum": ["list", "week", "month"],
       "enum_titles": ["List", "Week", "Month"],
-      "title": "View",
-      "description": "How the events are laid out: a list, this week, or this month as a grid.",
-      "help": "List: the next events, day by day. Week: this week, Monday to Sunday. Month: this month as a grid, events over several days as bars. Want two views? Add the module twice."
+      "title": "Look",
+      "description": "How the events are laid out: a list, this week, or this month as a grid. Week and month need room: the card is 40 % wide unless you change it.",
+      "help": "List: the next events, day by day. Week: this week, Monday to Sunday. Month: this month as a grid, events over several days as bars. Want two looks? Add the module twice."
     },
     "max_events": {
       "type": "integer",
       "default": 10,
-      "title": "Max Events",
-      "description": "Maximum number of upcoming events to display (list view).",
-      "show_if": {"view": ["list"]}
+      "title": "Max events",
+      "description": "Maximum number of upcoming events to display (list look).",
+      "show_if": {"layout": ["list"]}
     },
     "maximum_days": {
       "type": "integer",
       "default": 7,
-      "title": "Lookahead Days",
-      "description": "How many days in the future to search for upcoming events (list view).",
-      "show_if": {"view": ["list"]}
+      "title": "Days ahead",
+      "description": "How many days in the future to search for upcoming events (list look).",
+      "show_if": {"layout": ["list"]}
     },
     "recurring": {
       "type": "string",
       "default": "next",
       "enum": ["next", "all"],
       "enum_titles": ["Next only", "All"],
-      "title": "Recurring Events",
+      "title": "Recurring events",
       "description": "Show a repeating event once, or at every time it happens.",
-      "help": "Next only: a repeating event is shown once, at its next time, with how often it repeats. All: every time it happens gets its own row (list view).",
-      "show_if": {"view": ["list"]}
-    },
-    "show_header": {
-      "type": "boolean",
-      "default": true,
-      "title": "Show Header",
-      "description": "Show or hide the module's header/title."
+      "help": "Next only: a repeating event is shown once, at its next time, with how often it repeats. All: every time it happens gets its own row (list look).",
+      "show_if": {"layout": ["list"]}
     },
     "calendars": {
       "type": "array",
@@ -51,10 +46,11 @@
       "default": [],
       "items": {
         "type": "object",
+        "title": "Calendar",
         "properties": {
           "name": {
             "type": "string",
-            "title": "Calendar Name",
+            "title": "Calendar name",
             "description": "Friendly name for this calendar."
           },
           "url": {
@@ -64,14 +60,14 @@
           },
           "color": {
             "type": "string",
-            "title": "Indicator Color",
+            "title": "Indicator color",
             "description": "Hex color code or CSS custom property for event indicators (e.g., #ffffff, var(--color-ice-blue)).",
             "default": "#ffffff",
             "format": "color"
           },
           "icon": {
             "type": "string",
-            "title": "Lucide Icon",
+            "title": "Lucide icon",
             "description": "Lucide outline icon name to show next to events (e.g., calendar, music, alert-circle).",
             "default": "calendar",
             "format": "icon"
@@ -83,9 +79,9 @@
     "interval": {
       "type": "integer",
       "default": 300,
-      "title": "Update Interval (Seconds)",
-      "description": "Time to wait between calendar feed updates (e.g., 300 seconds = 5 minutes).",
-      "group": "Advanced"
+      "title": "Update interval",
+      "unit": "s",
+      "description": "Time to wait between calendar feed updates (e.g., 300 seconds = 5 minutes)."
     }
   },
   "required": ["interval"]

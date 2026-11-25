@@ -1,11 +1,11 @@
-{% if view and view != "list" %}
-<div class="calendar-container cal-grid view-{{ view }}">
+{% if layout and layout != "list" %}
+<div class="calendar-container cal-grid view-{{ layout }}">
     {% if show_header %}
-    <h2 class="module-header">{{ title }}</h2>
+    <h2 class="module-header">{{ heading or title }}</h2>
     {% endif %}
     <div class="cal-weekdays">
         {% for name in weekdays %}
-            {% if view == "week" %}
+            {% if layout == "week" %}
                 {% set day = weeks[0].days[loop.index0] %}
                 <span class="{{ 'today' if day.is_today else ('past' if day.is_past else '') }}">{{ name }}<b>{{ day.num }}</b></span>
             {% else %}
@@ -13,10 +13,10 @@
             {% endif %}
         {% endfor %}
     </div>
-    {% set base = 2 if view == "month" else 1 %}
+    {% set base = 2 if layout == "month" else 1 %}
     {% for week in weeks %}
         <div class="cal-week">
-            {% if view == "month" %}
+            {% if layout == "month" %}
                 {% for day in week.days %}
                     <div class="cal-num {{ 'today' if day.is_today else ('outside' if not day.in_month else ('past' if day.is_past else '')) }}" style="grid-column: {{ loop.index }};">{{ day.num }}</div>
                 {% endfor %}
@@ -31,7 +31,7 @@
             {% for day in week.days %}
                 <div class="cal-cell {{ 'outside' if not day.in_month else ('past' if day.is_past else '') }}" style="grid-row: {{ base + week.lanes|length }}; grid-column: {{ loop.index }};">
                     {% for ev in day.events %}
-                        {% if view == "week" %}
+                        {% if layout == "week" %}
                             <div class="cal-ev" style="border-color: {{ ev.calendar_color }};"><span class="cal-time">{{ ev.short_time }}</span><span class="cal-title">{{ ev.summary }}</span></div>
                         {% else %}
                             <div class="cal-ev"><span class="cal-pip" style="background-color: {{ ev.calendar_color }};"></span><span class="cal-title">{{ ev.summary }}</span></div>
@@ -46,7 +46,7 @@
 {% else %}
 <div class="calendar-container">
     {% if show_header %}
-    <h2 class="module-header">{{ translations.get("title", "Upcoming Events") }}</h2>
+    <h2 class="module-header">{{ heading or translations.get("title", "Upcoming Events") }}</h2>
     {% endif %}
 
     <div class="calendar-body">
@@ -94,7 +94,7 @@
     display: flex;
     flex-direction: column;
     width: 100%;
-    max-width: 380px;
+    max-width: 100%;
     color: var(--color-standard-gray, #999999);
 }
 
@@ -222,7 +222,7 @@
 }
 
 /* Week and month: 7 equal columns, days apart by space (no vertical lines), weeks by a faint line */
-.calendar-container.cal-grid { width: 40vw; max-width: none; }
+.calendar-container.cal-grid { max-width: 100%; }
 .cal-weekdays, .cal-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); column-gap: 8px; }
 .cal-weekdays { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
 .cal-week { padding: 6px 0 10px; border-top: 1px solid #262626; row-gap: 3px; grid-auto-rows: min-content; }

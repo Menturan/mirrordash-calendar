@@ -47,10 +47,9 @@ class CalendarModule:
         self.time_format = config.get("time_format") or global_cfg.get("time_format", "24h")
         self.max_events = config.get("max_events", 10)
         self.maximum_days = config.get("maximum_days", 7)
-        self.show_header = config.get("show_header", True)
-        self.view = config.get("view", "list")
-        if self.view not in ("list", "week", "month"):
-            self.view = "list"
+        self.layout = config.get("layout", "list")
+        if self.layout not in ("list", "week", "month"):
+            self.layout = "list"
         self.recurring = config.get("recurring", "next")
         if self.recurring not in ("next", "all"):
             self.recurring = "next"
@@ -134,7 +133,7 @@ class CalendarModule:
             return []
             
         # Repeating series by UID, from their master VEVENT: (RRULE or None, DTSTART)
-        collapse = self.view == "list" and self.recurring == "next"
+        collapse = self.layout == "list" and self.recurring == "next"
         masters, moved_uids = {}, set()
         if collapse:
             for comp in cal.walk("VEVENT"):
@@ -205,7 +204,7 @@ class CalendarModule:
                 
             # Filter out events that have already ended
             now_tz = datetime.now(self.tz)
-            if self.view == "list" and end_aware <= now_tz:
+            if self.layout == "list" and end_aware <= now_tz:
                 continue
                 
             # Find which local dates (in self.tz) this event intersects
@@ -318,7 +317,7 @@ class CalendarModule:
         """First and last cell of the grid: this week, or the whole weeks that hold this month."""
         fwd = self.first_week_day()
         week_start = lambda d: d - timedelta(days=(d.weekday() - fwd) % 7)  # noqa: E731
-        if self.view == "week":
+        if self.layout == "week":
             start = week_start(today)
             return start, start + timedelta(days=6)
         first = today.replace(day=1)
@@ -327,7 +326,7 @@ class CalendarModule:
 
     def build_grid(self, events: list[dict], start: date, end: date, today: date) -> list[dict]:
         """Lay events out in weeks of 7 cells: multi-day events as bars in lanes, the rest in their day."""
-        cap = DAY_CAP[self.view]
+        cap = DAY_CAP[self.layout]
         singles, bars = {}, {}
         for ev in events:
             if ev["last_day"] > ev["first_day"]:
@@ -365,7 +364,7 @@ class CalendarModule:
                 room = cap - used[i]
                 shown = evs if len(evs) <= room and not hidden[i] else evs[:max(0, room - 1)]
                 days.append({"date": d, "num": d.day, "is_today": d == today, "is_past": d < today,
-                             "in_month": self.view == "week" or d.month == today.month,
+                             "in_month": self.layout == "week" or d.month == today.month,
                              "events": shown, "more": len(evs) - len(shown) + hidden[i]})
             weeks.append({"days": days, "lanes": [lane["bars"] for lane in lanes[:cap]]})
         return weeks
@@ -381,7 +380,7 @@ class CalendarModule:
         today_date = now_tz.date()
 
         # The list: today .. today + maximum_days; the grid: whole weeks around today or this month
-        if self.view == "list":
+        if self.layout == "list":
             first_day, last_day = today_date, today_date + timedelta(days=self.maximum_days)
         else:
             first_day, last_day = self.grid_window(today_date)
@@ -411,21 +410,20 @@ class CalendarModule:
             x["summary"]
         ))
         
-        if self.view != "list":
+        if self.layout != "list":
             fwd = self.first_week_day()
             names = get_day_names("abbreviated", locale=self.lang)
-            if self.view == "week":
+            if self.layout == "week":
                 week_no = (first_day + timedelta(days=3)).isocalendar().week
                 title = f"{self.translate('week', 'Week')} {week_no}"
             else:
                 title = babel_format_date(today_date, format="LLLL y", locale=self.lang)
             return self.render_template(
                 "widget.html",
-                view=self.view,
+                layout=self.layout,
                 title=title,
                 weekdays=[names[(fwd + i) % 7] for i in range(7)],
                 weeks=self.build_grid(all_events, first_day, last_day, today_date),
-                show_header=self.show_header,
             )
 
         # 4. Show each repeating series once, at its next time; then limit to max_events
@@ -463,9 +461,8 @@ class CalendarModule:
         # 6. Render dynamic HTML using Jinja2 template
         html = self.render_template(
             "widget.html",
-            view="list",
+            layout="list",
             grouped_events=grouped_events,
-            show_header=self.show_header
         )
         logger.info(f"Rendering {self.name} with {len(display_events)} upcoming events")
         return html
