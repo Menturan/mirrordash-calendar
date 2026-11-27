@@ -437,5 +437,5 @@ def test_the_card_width_is_a_preferred_width_not_a_module_default():
     from pathlib import Path
     import mirrordash_calendar
     schema = json.loads((Path(mirrordash_calendar.__file__).parent / "config_schema.json").read_text())
-    assert schema["preferred_width"] == "32rem"
+    assert schema["preferred_width"] == "24rem"
     assert "width_percent" not in schema["properties"] and "height_percent" not in schema["properties"]
